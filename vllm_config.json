@@ -1,0 +1,42 @@
+{
+    "vllm_small": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "base_url": "http://localhost:8000/v1",
+        "api_key": "dummy-key",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.7,
+        "max_tokens": 512,
+        "stop": null
+    },
+    "vllm": {
+        "model_id": "meta-llama/Llama-2-7b-chat-hf",
+        "base_url": "http://localhost:8000/v1",
+        "api_key": "dummy-key",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+        "stop": null
+    },
+    "vllm_13b": {
+        "model_id": "meta-llama/Llama-2-13b-chat-hf",
+        "base_url": "http://localhost:8000/v1",
+        "api_key": "dummy-key",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+        "stop": null
+    },
+    "vllm_70b": {
+        "model_id": "meta-llama/Llama-2-70b-chat-hf",
+        "base_url": "http://localhost:8000/v1",
+        "api_key": "dummy-key",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+        "stop": null
+    }
+}
