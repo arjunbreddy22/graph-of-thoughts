@@ -663,16 +663,21 @@ def run(
         os.makedirs(os.path.join(results_folder, method.__name__))
 
     for data in selected_data:
+        print(f"\n🔥 Running data {data[0]}: {data[1]}")
         logging.info(f"Running data {data[0]}: {data[1]}")
         if budget <= 0.0:
+            print(f"❌ Budget depleted! Stopping.")
             logging.error(
                 f"Budget has been depleted, stopping. Data {data[0]} has not been run."
             )
             break
         for method in methods:
+            print(f"📊 Running method: {method.__name__}")
+            print(f"💰 Budget remaining: ${budget:.2f}")
             logging.info(f"Running method {method.__name__}")
             logging.info(f"Budget left: {budget}")
             if budget <= 0.0:
+                print(f"❌ Budget depleted! Stopping method {method.__name__}")
                 logging.error(
                     f"Budget has been depleted, stopping. Method {method.__name__} has not been run."
                 )
@@ -706,17 +711,38 @@ def run(
                     "method": method.__name__,
                 },
             )
+            print(f"🚀 Starting Graph of Thoughts execution...")
             try:
                 executor.run()
+                print(f"✅ GoT execution completed successfully!")
+                
+                # Get final results
+                final_thoughts = executor.get_final_thoughts()
+                if final_thoughts:
+                    final_thought = final_thoughts[0]
+                    print(f"🎯 Final result: {final_thought.state.get('current', 'No result')}")
+                    if hasattr(final_thought, 'score'):
+                        print(f"📈 Final score: {final_thought.score}")
+                else:
+                    print("⚠️ No final thoughts generated")
+                    
             except Exception as e:
+                print(f"❌ Error during execution: {e}")
                 logging.error(f"Exception: {e}")
+                
             path = os.path.join(
                 results_folder,
                 method.__name__,
                 f"{data[0]}.json",
             )
             executor.output_graph(path)
-            budget -= lm.cost
+            print(f"💾 Results saved to: {path}")
+            
+            cost = lm.cost
+            budget -= cost
+            print(f"💸 Cost for this run: ${cost:.4f}")
+            print(f"💰 Budget remaining: ${budget:.2f}")
+            print("-" * 60)
 
     return orig_budget - budget
 
@@ -731,10 +757,25 @@ if __name__ == "__main__":
     Output Example:
         [0, 0, 0, 0, 1, 1, 1, 1, 2...]
     """
+    print("🧠 Starting Graph of Thoughts with vLLM Server")
+    print("=" * 60)
+    print(f"📊 Testing {len([0, 1, 2])} samples with Graph of Thoughts method")
+    print(f"💰 Budget: ${30}")
+    print(f"🤖 LLM: vLLM server (TinyLlama)")
+    print("=" * 60)
+    
     budget = 30
     samples = [0, 1, 2]  # Test with just 3 samples for quick testing
     approaches = [got]   # Focus on Graph of Thoughts method
 
     spent = run(samples, approaches, budget, "vllm")
 
+    print("\n" + "=" * 60)
+    print("📋 FINAL SUMMARY")
+    print("=" * 60) 
+    print(f"💸 Total spent: ${spent:.4f} out of ${budget}")
+    print(f"💰 Budget remaining: ${budget - spent:.4f}")
+    print(f"📁 Results saved in: results/ directory")
+    print("🎉 Graph of Thoughts baseline with vLLM completed!")
+    
     logging.info(f"Spent {spent} out of {budget} budget.")
