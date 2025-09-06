@@ -744,7 +744,7 @@ def run(
             if lm_name == "vllm":
                 lm = language_models.vLLMClient(
                     os.path.join(os.path.dirname(__file__), "vllm_config.json"),
-                    model_name="vllm_small",
+                    model_name="vllm",
                     cache=True,
                 )
             else:
@@ -865,7 +865,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"📊 Testing {len(list(range(20)))} samples with Graph of Thoughts method")
     print(f"💰 Budget: ${100}")
-    print(f"🤖 LLM: vLLM server (TinyLlama)")
+    print(f"🤖 LLM: vLLM server (Llama-2-7B)")
     print("=" * 60)
     
     budget = 100
