@@ -118,19 +118,23 @@ Input: {input}
 Incorrectly Sorted: {incorrectly_sorted}
 """
 
-    got_split_prompt = """<Instruction> Split the following list of 32 numbers into 2 lists of 16 numbers each, the first list should contain the first 16 numbers and the second list the second 16 numbers.
-Only output the final 2 lists in the following format without any additional text or thoughts!:
+    got_split_prompt = """<Instruction> Split the following list of 64 numbers into 4 lists of 16 numbers each, the first list should contain the first 16 numbers, the second list the second 16 numbers, the third list the third 16 numbers and the fourth list the fourth 16 numbers.
+Only output the final 4 lists in the following format without any additional text or thoughts!:
 {{
     "List 1": [3, 4, 3, 5, 7, 8, 1, ...],
-    "List 2": [2, 9, 2, 4, 7, 1, 5, ...]
+    "List 2": [2, 9, 2, 4, 7, 1, 5, ...],
+    "List 3": [6, 9, 8, 1, 9, 2, 4, ...],
+    "List 4": [9, 0, 7, 6, 5, 6, 6, ...]
 }} </Instruction>
 
 <Example>
-Input: [9, 6, 7, 7, 2, 0, 2, 2, 3, 5, 0, 9, 2, 2, 4, 4, 5, 2, 5, 1, 2, 8, 3, 8, 3, 9, 6, 0, 4, 2, 2, 3]
+Input: [3, 1, 9, 3, 7, 5, 5, 4, 8, 1, 5, 3, 3, 2, 3, 0, 9, 7, 2, 2, 4, 4, 8, 5, 0, 8, 7, 3, 3, 8, 7, 0, 9, 5, 1, 6, 7, 6, 8, 9, 0, 3, 0, 6, 3, 4, 8, 0, 6, 9, 8, 4, 1, 2, 9, 0, 4, 8, 8, 9, 9, 8, 5, 9]
 Output: 
 {{
-    "List 1": [9, 6, 7, 7, 2, 0, 2, 2, 3, 5, 0, 9, 2, 2, 4, 4],
-    "List 2": [5, 2, 5, 1, 2, 8, 3, 8, 3, 9, 6, 0, 4, 2, 2, 3]
+    "List 1": [3, 1, 9, 3, 7, 5, 5, 4, 8, 1, 5, 3, 3, 2, 3, 0],
+    "List 2": [9, 7, 2, 2, 4, 4, 8, 5, 0, 8, 7, 3, 3, 8, 7, 0],
+    "List 3": [9, 5, 1, 6, 7, 6, 8, 9, 0, 3, 0, 6, 3, 4, 8, 0],
+    "List 4": [6, 9, 8, 4, 1, 2, 9, 0, 4, 8, 8, 9, 9, 8, 5, 9]
 }}
 </Example>
 
@@ -202,6 +206,7 @@ Merged list:
         :raise AssertionError: If the requested number of branches is not one.
         """
 
+        assert num_branches == 1, "Branching should be done via multiple requests."
         if current is None or current == "":
             input = original
         else:
@@ -362,12 +367,13 @@ class SortingParser(parser.Parser):
             if state["method"] == "got" and state["current"] == "":
                 # We expect a json which contains the four lists named "List 1" to "List 4"
                 # cut everything until the opening bracket and everything after the closing bracket
+
                 try:
                     text = text[text.index("{") : text.index("}") + 1]
                     json_dict = json.loads(text)
-                    if len(json_dict.keys()) != 2:
+                    if len(json_dict.keys()) != 4:
                         logging.warning(
-                            f"Expected 2 lists in json, but found {len(json_dict.keys())}."
+                            f"Expected 4 lists in json, but found {len(json_dict.keys())}."
                         )
                     for key, value in json_dict.items():
                         if "List" not in key:
@@ -508,7 +514,7 @@ def tot() -> operations.GraphOfOperations:
     keep_best_1 = operations.KeepBestN(1, False)
     operations_graph.append_operation(keep_best_1)
 
-    for _ in range(1):
+    for _ in range(3):
         operations_graph.append_operation(operations.Generate(1, 20))
         operations_graph.append_operation(operations.Score(1, False, utils.num_errors))
         keep_best_2 = operations.KeepBestN(1, False)
@@ -537,7 +543,7 @@ def tot2() -> operations.GraphOfOperations:
     keep_best_1 = operations.KeepBestN(1, False)
     operations_graph.append_operation(keep_best_1)
 
-    for _ in range(2):
+    for _ in range(6):
         operations_graph.append_operation(operations.Generate(1, 10))
         operations_graph.append_operation(operations.Score(1, False, utils.num_errors))
         keep_best_2 = operations.KeepBestN(1, False)
@@ -545,7 +551,11 @@ def tot2() -> operations.GraphOfOperations:
         operations_graph.append_operation(keep_best_2)
         keep_best_1 = keep_best_2
 
+        operations_graph.append_operation(operations.KeepBestN(1, False))
+        operations_graph.append_operation(operations.KeepBestN(1, False))
+
     operations_graph.append_operation(operations.KeepBestN(1, False))
+
     operations_graph.append_operation(operations.GroundTruth(utils.test_sorting))
 
     return operations_graph
@@ -562,7 +572,8 @@ def got() -> operations.GraphOfOperations:
 
     plans = operations.Generate(1, 1)
     operations_graph.append_operation(plans)  # generate the sublists
-    for i in range(1, 3):
+    sorted_sublists = []
+    for i in range(1, 5):
         list_id = f"List {i}"
         sub_list = operations.Selector(
             lambda thoughts, list_id=list_id: [
@@ -580,6 +591,52 @@ def got() -> operations.GraphOfOperations:
         keep_best_sub_list = operations.KeepBestN(1, False)
         keep_best_sub_list.add_predecessor(score_sub_list)
         operations_graph.add_operation(keep_best_sub_list)
+
+        sorted_sublists.append(keep_best_sub_list)
+
+    aggregate_1 = operations.Aggregate(10)
+    aggregate_1.add_predecessor(sorted_sublists[0])
+    aggregate_1.add_predecessor(sorted_sublists[1])
+    operations_graph.add_operation(aggregate_1)
+    score_aggregate_1 = operations.Score(1, False, utils.num_errors)
+    score_aggregate_1.add_predecessor(aggregate_1)
+    operations_graph.add_operation(score_aggregate_1)
+    keep_best_aggregate_1 = operations.KeepBestN(1, False)
+    keep_best_aggregate_1.add_predecessor(score_aggregate_1)
+    operations_graph.add_operation(keep_best_aggregate_1)
+
+    improve_aggregate_1 = operations.Generate(1, 5)
+    improve_aggregate_1.add_predecessor(keep_best_aggregate_1)
+    operations_graph.add_operation(improve_aggregate_1)
+    improve_score_aggregate_1 = operations.Score(1, False, utils.num_errors)
+    improve_score_aggregate_1.add_predecessor(improve_aggregate_1)
+    improve_score_aggregate_1.add_predecessor(keep_best_aggregate_1)
+    operations_graph.add_operation(improve_score_aggregate_1)
+    improve_keep_best_aggregate_1 = operations.KeepBestN(1, False)
+    improve_keep_best_aggregate_1.add_predecessor(improve_score_aggregate_1)
+    operations_graph.add_operation(improve_keep_best_aggregate_1)
+
+    aggregate_2 = operations.Aggregate(10)
+    aggregate_2.add_predecessor(sorted_sublists[2])
+    aggregate_2.add_predecessor(sorted_sublists[3])
+    operations_graph.add_operation(aggregate_2)
+    score_aggregate_2 = operations.Score(1, False, utils.num_errors)
+    score_aggregate_2.add_predecessor(aggregate_2)
+    operations_graph.add_operation(score_aggregate_2)
+    keep_best_aggregate_2 = operations.KeepBestN(1, False)
+    keep_best_aggregate_2.add_predecessor(score_aggregate_2)
+    operations_graph.add_operation(keep_best_aggregate_2)
+
+    improve_aggregate_2 = operations.Generate(1, 5)
+    improve_aggregate_2.add_predecessor(keep_best_aggregate_2)
+    operations_graph.add_operation(improve_aggregate_2)
+    improve_score_aggregate_2 = operations.Score(1, False, utils.num_errors)
+    improve_score_aggregate_2.add_predecessor(improve_aggregate_2)
+    improve_score_aggregate_2.add_predecessor(keep_best_aggregate_2)
+    operations_graph.add_operation(improve_score_aggregate_2)
+    improve_keep_best_aggregate_2 = operations.KeepBestN(1, False)
+    improve_keep_best_aggregate_2.add_predecessor(improve_score_aggregate_2)
+    operations_graph.add_operation(improve_keep_best_aggregate_2)
 
     final_aggregate = operations.Aggregate(10)
     operations_graph.append_operation(final_aggregate)
@@ -621,7 +678,7 @@ def run(
     """
 
     orig_budget = budget
-    data_path = os.path.join(os.path.dirname(__file__), "examples/sorting/sorting_032.csv")
+    data_path = os.path.join(os.path.dirname(__file__), "examples/sorting/sorting_064.csv")
     data = []
     with open(data_path, "r") as f:
         reader = csv.reader(f)
@@ -660,6 +717,7 @@ def run(
     )
 
     for method in methods:
+        # create a results directory for the method
         os.makedirs(os.path.join(results_folder, method.__name__))
 
     for data in selected_data:
@@ -795,15 +853,15 @@ def run(
 
 if __name__ == "__main__":
     """
-    Input (x)   : an unordered list of 32 numbers between 0 and 9 (inclusive)
-    Output (y)  : a sorted list of 32 numbers between 0 and 9 (inclusive)
+    Input (x)   : an unordered list of 64 numbers between 0 and 9 (inclusive)
+    Output (y)  : a sorted list of 64 numbers between 0 and 9 (inclusive)
     Correct     : y == sorted(x)
     Input Example:
         [0, 1, 9, 4, 2, 2, 0, 5, 1...]
     Output Example:
         [0, 0, 0, 0, 1, 1, 1, 1, 2...]
     """
-    print("🧠 Starting Graph of Thoughts with vLLM Server")
+    print("🧠 Starting Graph of Thoughts with vLLM Server (64 elements)")
     print("=" * 60)
     print(f"📊 Testing {len(list(range(20)))} samples with Graph of Thoughts method")
     print(f"💰 Budget: ${100}")
