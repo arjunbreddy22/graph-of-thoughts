@@ -20,72 +20,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'examples', 'sorting'))
 import utils
 
-# Debug: Monkey patch vLLM client to log raw responses
-original_vllm_query = None
-
-def debug_vllm_query(self, messages, **kwargs):
-    """Debug wrapper for vLLM client queries"""
-    global original_vllm_query
-    
-    # Calculate approximate prompt length - handle both string and dict messages
-    total_prompt = ""
-    if isinstance(messages, list):
-        for msg in messages:
-            if isinstance(msg, dict):
-                total_prompt += msg.get('content', '')
-            else:
-                total_prompt += str(msg)
-    else:
-        total_prompt = str(messages)
-    
-    prompt_chars = len(total_prompt)
-    prompt_tokens_est = prompt_chars // 4  # rough estimate: 4 chars per token
-    
-    print(f"🔍 MODEL CALL:")
-    print(f"🔍   Prompt chars: {prompt_chars}")
-    print(f"🔍   Prompt tokens (est): {prompt_tokens_est}")
-    print(f"🔍   Available kwargs: {list(kwargs.keys())}")
-    print(f"🔍   Prompt preview: {total_prompt[:200]}...")
-    
-    # Call original method
-    result = original_vllm_query(self, messages, **kwargs)
-    
-    # Log raw response
-    if result and len(result) > 0:
-        response_text = result[0] if isinstance(result, list) else str(result)
-        response_chars = len(response_text)
-        response_tokens_est = response_chars // 4
-        
-        print(f"🔍 MODEL RESPONSE:")
-        print(f"🔍   Response chars: {response_chars}")
-        print(f"🔍   Response tokens (est): {response_tokens_est}")
-        print(f"🔍   Response start: {response_text[:200]}...")
-        print(f"🔍   Response end: ...{response_text[-100:]}")
-        
-        # Check for truncation signs
-        if response_text.endswith(('...', ',', '[', ']', ',')):
-            print(f"⚠️   POSSIBLE TRUNCATION: Response ends with '{response_text[-20:]}'")
-    else:
-        print(f"🔍 MODEL RESPONSE: No response or empty response")
-    
-    print(f"🔍 END MODEL CALL")
-    print("-" * 40)
-    
-    return result
-
-# Apply the monkey patch
-def apply_debug_patch():
-    global original_vllm_query
-    try:
-        from graph_of_thoughts.language_models.vllm_client import vLLMClient
-        if original_vllm_query is None:
-            original_vllm_query = vLLMClient.query
-            vLLMClient.query = debug_vllm_query
-            print("✅ Debug patch applied to vLLM client")
-    except Exception as e:
-        print(f"⚠️ Could not apply debug patch: {e}")
-
-apply_debug_patch()
+# Clean vLLM integration without debug interference
 
 
 class SortingPrompter(prompter.Prompter):
@@ -778,100 +713,10 @@ def run(
                     "method": method.__name__,
                 },
             )
-            # Debug: Test simple model capability first
-            print(f"🧪 SIMPLE MODEL TEST:")
-            try:
-                simple_prompt = f'Sort this list in ascending order: {data[1][:50]}... (first 10 elements only for test)'
-                simple_result = lm.query([simple_prompt])  # Simplified call
-                print(f"🧪 Simple test result: {simple_result}")
-            except Exception as e:
-                print(f"🧪 Simple test failed: {e}")
-            print("🧪 END SIMPLE TEST")
-            print("=" * 40)
-            
             print(f"🚀 Starting Graph of Thoughts execution...")
-            
-            # Debug: Analyze input data size
-            original_data = data[1]  # The actual input list
-            print(f"🔍 Input data: {original_data}")
-            print(f"🔍 Input data length: {len(original_data)} chars, ~{len(original_data.split(','))} elements")
-            
-            # Estimate prompt complexity for GoT
-            sample_prompt = "Complex GoT prompt with examples and instructions"
-            estimated_prompt_tokens = len(data[1].split()) * 4 + 2000  # rough estimate based on GoT complexity
-            max_response_tokens = 1800  # from config
-            total_estimated = estimated_prompt_tokens + max_response_tokens
-            print(f"🔍 Estimated prompt tokens: ~{estimated_prompt_tokens}")
-            print(f"🔍 Max response tokens: {max_response_tokens}")
-            print(f"🔍 Total estimated tokens: ~{total_estimated}")
-            print(f"🔍 vLLM context limit: 4096")
-            if total_estimated > 4096:
-                print(f"⚠️ POTENTIAL OVERFLOW: {total_estimated - 4096} tokens over limit!")
-            
             try:
                 executor.run()
                 print(f"✅ GoT execution completed successfully!")
-                
-                # Debug: Check model usage statistics
-                print(f"🔍 Language model cost: ${lm.cost:.6f}")
-                if hasattr(lm, '_call_count'):
-                    print(f"🔍 Total model calls made: {lm._call_count}")
-                
-                # Get final results and debug the structure
-                final_thoughts = executor.get_final_thoughts()
-                print(f"🔍 Debug: final_thoughts type = {type(final_thoughts)}")
-                print(f"🔍 Debug: final_thoughts length = {len(final_thoughts) if final_thoughts else 0}")
-                
-                if final_thoughts:
-                    print(f"🔍 Debug: first element type = {type(final_thoughts[0])}")
-                    
-                    # Try different ways to access the result
-                    try:
-                        final_thought = final_thoughts[0]
-                        
-                        # Check if it's a Thought object with state attribute
-                        if hasattr(final_thought, 'state'):
-                            result = final_thought.state.get('current', 'No result')
-                            score = getattr(final_thought, 'score', 'No score')
-                            print(f"🎯 Final sorted list: {result}")
-                            print(f"📈 Final score: {score}")
-                            
-                        # Check if it's a dictionary
-                        elif isinstance(final_thought, dict):
-                            result = final_thought.get('current', final_thought.get('state', {}).get('current', 'No result'))
-                            score = final_thought.get('score', 'No score')
-                            print(f"🎯 Final sorted list: {result}")
-                            print(f"📈 Final score: {score}")
-                            
-                        # If it's a list, maybe it contains multiple thoughts
-                        elif isinstance(final_thought, list):
-                            print(f"🔍 Debug: It's a list with {len(final_thought)} elements")
-                            if len(final_thought) > 0:
-                                inner_thought = final_thought[0]
-                                print(f"🔍 Debug: inner element type = {type(inner_thought)}")
-                                
-                                if hasattr(inner_thought, 'state'):
-                                    result = inner_thought.state.get('current', 'No result')
-                                    score = getattr(inner_thought, 'score', 'No score')
-                                    print(f"🎯 Final sorted list: {result}")
-                                    print(f"📈 Final score: {score}")
-                                elif isinstance(inner_thought, dict):
-                                    result = inner_thought.get('current', 'No result')
-                                    score = inner_thought.get('score', 'No score')
-                                    print(f"🎯 Final sorted list: {result}")
-                                    print(f"📈 Final score: {score}")
-                                else:
-                                    print(f"🔍 Debug: inner element content = {inner_thought}")
-                            
-                        else:
-                            # Just print whatever it is
-                            print(f"🎯 Final result (raw): {final_thought}")
-                            
-                    except Exception as e:
-                        print(f"❌ Error accessing results: {e}")
-                        print(f"🔍 Raw final_thoughts: {final_thoughts}")
-                else:
-                    print("⚠️ No final thoughts generated")
                     
             except Exception as e:
                 print(f"❌ Error during execution: {e}")
@@ -883,13 +728,7 @@ def run(
                 f"{data[0]}.json",
             )
             executor.output_graph(path)
-            print(f"💾 Results saved to: {path}")
-            
-            cost = lm.cost
-            budget -= cost
-            print(f"💸 Cost for this run: ${cost:.4f}")
-            print(f"💰 Budget remaining: ${budget:.2f}")
-            print("-" * 60)
+            budget -= lm.cost
 
     return orig_budget - budget
 
@@ -906,13 +745,13 @@ if __name__ == "__main__":
     """
     print("🧠 Starting Graph of Thoughts with vLLM Server")
     print("=" * 60)
-    print(f"📊 Testing {len(list(range(2)))} samples with Graph of Thoughts method")
+    print(f"📊 Testing Graph of Thoughts method on 32-element sorting")
     print(f"💰 Budget: ${100}")
     print(f"🤖 LLM: vLLM server (Llama-2-7B)")
     print("=" * 60)
     
     budget = 100
-    samples = list(range(2))   # DEBUGGING: Test with just 2 samples to analyze output
+    samples = list(range(5))   # Test with 5 samples to see if it works
     approaches = [got]   # Focus on Graph of Thoughts method
 
     spent = run(samples, approaches, budget, "vllm")
