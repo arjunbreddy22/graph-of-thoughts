@@ -14,11 +14,11 @@ import csv
 from typing import Dict, List, Callable, Union
 from graph_of_thoughts import controller, language_models, operations, prompter, parser
 
-# This is a hack to also allow execution of this file from the examples directory
-try:
-    from . import utils
-except ImportError:
-    import utils
+# Import utils from the examples/sorting directory
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'examples', 'sorting'))
+import utils
 
 
 class SortingPrompter(prompter.Prompter):
