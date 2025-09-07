@@ -16,7 +16,7 @@
         "prompt_token_cost": 0.0,
         "response_token_cost": 0.0,
         "temperature": 0.3,
-        "max_tokens": 1200,
+        "max_tokens": 1800,
         "stop": null
     },
     "vllm_13b": {
