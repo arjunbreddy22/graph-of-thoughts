@@ -751,7 +751,7 @@ if __name__ == "__main__":
     print("=" * 60)
     
     budget = 100
-    samples = list(range(3))   # Test with 3 samples
+    samples = list(range(20))  # Test with 20 samples for baseline
     approaches = [got]   # Focus on Graph of Thoughts method
 
     spent = run(samples, approaches, budget, "vllm")
