@@ -24,17 +24,17 @@ def extract_results(experiment_name: str) -> List[Dict]:
     experiment_path = os.path.join("results", experiment_name, "got")
     
     if not os.path.exists(experiment_path):
-        print(f"❌ Experiment path not found: {experiment_path}")
+        print(f"ERROR: Experiment path not found: {experiment_path}")
         return []
     
     # Find all JSON result files in the got directory
     json_files = glob.glob(os.path.join(experiment_path, "*.json"))
     
     if not json_files:
-        print(f"❌ No JSON files found in: {experiment_path}")
+        print(f"ERROR: No JSON files found in: {experiment_path}")
         return []
     
-    print(f"📁 Found {len(json_files)} result files in {experiment_name}")
+    print(f"Found {len(json_files)} result files in {experiment_name}")
     
     for file_path in sorted(json_files):
         try:
@@ -52,7 +52,7 @@ def extract_results(experiment_name: str) -> List[Dict]:
                     break
             
             if not ground_truth_op:
-                print(f"⚠️  No ground_truth_evaluator found in {file_path}")
+                print(f"WARNING: No ground_truth_evaluator found in {file_path}")
                 continue
                 
             # Extract final thought state
@@ -76,7 +76,7 @@ def extract_results(experiment_name: str) -> List[Dict]:
             results.append(result)
             
         except Exception as e:
-            print(f"❌ Error processing {file_path}: {e}")
+            print(f"ERROR processing {file_path}: {e}")
             continue
     
     return results
@@ -123,54 +123,44 @@ def print_baseline_report(analysis: Dict, results: List[Dict], experiment_name: 
     :param experiment_name: Name of the experiment being analyzed
     """
     print("\n" + "=" * 60)
-    print("🧠 vLLM + GoT BASELINE EVALUATION REPORT")
+    print("vLLM + GoT BASELINE EVALUATION REPORT")
     print("=" * 60)
-    print(f"🗂️  Experiment: {experiment_name}")
-    print(f"🤖 Model: Qwen2-7B-Instruct")
-    print(f"🔧 Method: Graph of Thoughts (GoT)")
-    print(f"📊 Task: 32-element list sorting")
+    print(f"Experiment: {experiment_name}")
+    print(f"Model: Qwen2-7B-Instruct")
+    print(f"Method: Graph of Thoughts (GoT)")
+    print(f"Task: 32-element list sorting")
     print()
     
     # Core Performance Metrics
-    print("📈 PERFORMANCE METRICS:")
-    print(f"   • Success Rate: {analysis['success_rate']:.1%} ({analysis['solved_count']}/{analysis['total_samples']})")
-    print(f"   • Average Error Score: {analysis['avg_error_score']:.2f}")
-    print(f"   • Error Range: {analysis['min_error']} - {analysis['max_error']}")
+    print("PERFORMANCE METRICS:")
+    print(f"   Success Rate: {analysis['success_rate']:.1%} ({analysis['solved_count']}/{analysis['total_samples']})")
+    print(f"   Average Error Score: {analysis['avg_error_score']:.2f}")
+    print(f"   Error Range: {analysis['min_error']} - {analysis['max_error']}")
     print()
     
     # Error Distribution
-    print("🎯 ERROR DISTRIBUTION:")
+    print("ERROR DISTRIBUTION:")
     for error_score, count in analysis['error_distribution'].items():
         percentage = count / analysis['total_samples'] * 100
-        print(f"   • Score {error_score}: {count} samples ({percentage:.1f}%)")
+        print(f"   Score {error_score}: {count} samples ({percentage:.1f}%)")
     print()
     
     # Token Usage
-    print("🔢 TOKEN USAGE:")
-    print(f"   • Avg Prompt Tokens: {analysis['avg_prompt_tokens']:.0f}")
-    print(f"   • Avg Completion Tokens: {analysis['avg_completion_tokens']:.0f}")
-    print(f"   • Avg Total Tokens/Sample: {analysis['avg_total_tokens']:.0f}")
-    print(f"   • Total Tokens Used: {analysis['total_tokens_used']:,}")
+    print("TOKEN USAGE:")
+    print(f"   Avg Prompt Tokens: {analysis['avg_prompt_tokens']:.0f}")
+    print(f"   Avg Completion Tokens: {analysis['avg_completion_tokens']:.0f}")
+    print(f"   Avg Total Tokens/Sample: {analysis['avg_total_tokens']:.0f}")
+    print(f"   Total Tokens Used: {analysis['total_tokens_used']:,}")
     print()
     
     # Sample-by-Sample Breakdown
-    print("📋 DETAILED BREAKDOWN:")
+    print("DETAILED BREAKDOWN:")
     results_sorted = sorted(results, key=lambda x: x['sample_id'])
     for r in results_sorted:
-        status = "✅ SOLVED" if r['solved'] else "❌ FAILED"
+        status = "SOLVED" if r['solved'] else "FAILED"
         print(f"   Sample {r['sample_id']}: {status} (Error Score: {r['error_score']}, Tokens: {r['total_tokens']})")
     
     print("\n" + "=" * 60)
-    print("💡 BASELINE SUMMARY:")
-    if analysis['success_rate'] > 0.7:
-        print("🎉 EXCELLENT: High success rate, strong GoT performance")
-    elif analysis['success_rate'] > 0.4:
-        print("📈 GOOD: Moderate success rate, room for optimization")  
-    else:
-        print("🔧 NEEDS WORK: Low success rate, significant optimization potential")
-    
-    print(f"🚀 Ready for vLLM vs SGLang comparison!")
-    print("=" * 60)
 
 def main():
     """Main execution function."""
@@ -180,13 +170,13 @@ def main():
         return
     
     experiment_name = sys.argv[1]
-    print(f"🔍 Analyzing experiment: {experiment_name}")
+    print(f"Analyzing experiment: {experiment_name}")
     
     # Extract results
     results = extract_results(experiment_name)
     
     if not results:
-        print("❌ No results to analyze. Check the experiment name and path.")
+        print("ERROR: No results to analyze. Check the experiment name and path.")
         return
     
     # Analyze results  
@@ -204,7 +194,7 @@ def main():
             'raw_results': results
         }, f, indent=2)
     
-    print(f"\n💾 Detailed results saved to: {output_file}")
+    print(f"\nDetailed results saved to: {output_file}")
 
 if __name__ == "__main__":
     main()
