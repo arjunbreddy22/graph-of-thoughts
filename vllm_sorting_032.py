@@ -27,10 +27,16 @@ def debug_vllm_query(self, messages, **kwargs):
     """Debug wrapper for vLLM client queries"""
     global original_vllm_query
     
-    # Calculate approximate prompt length
+    # Calculate approximate prompt length - handle both string and dict messages
     total_prompt = ""
-    for msg in messages:
-        total_prompt += msg.get('content', '')
+    if isinstance(messages, list):
+        for msg in messages:
+            if isinstance(msg, dict):
+                total_prompt += msg.get('content', '')
+            else:
+                total_prompt += str(msg)
+    else:
+        total_prompt = str(messages)
     
     prompt_chars = len(total_prompt)
     prompt_tokens_est = prompt_chars // 4  # rough estimate: 4 chars per token
@@ -38,7 +44,7 @@ def debug_vllm_query(self, messages, **kwargs):
     print(f"🔍 MODEL CALL:")
     print(f"🔍   Prompt chars: {prompt_chars}")
     print(f"🔍   Prompt tokens (est): {prompt_tokens_est}")
-    print(f"🔍   Max response tokens: {kwargs.get('max_tokens', 'default')}")
+    print(f"🔍   Available kwargs: {list(kwargs.keys())}")
     print(f"🔍   Prompt preview: {total_prompt[:200]}...")
     
     # Call original method
@@ -57,8 +63,10 @@ def debug_vllm_query(self, messages, **kwargs):
         print(f"🔍   Response end: ...{response_text[-100:]}")
         
         # Check for truncation signs
-        if response_text.endswith(('...', ',', '[', ']')):
-            print(f"⚠️   POSSIBLE TRUNCATION: Response ends with '{response_text[-10:]}'")
+        if response_text.endswith(('...', ',', '[', ']', ',')):
+            print(f"⚠️   POSSIBLE TRUNCATION: Response ends with '{response_text[-20:]}'")
+    else:
+        print(f"🔍 MODEL RESPONSE: No response or empty response")
     
     print(f"🔍 END MODEL CALL")
     print("-" * 40)
@@ -773,11 +781,8 @@ def run(
             # Debug: Test simple model capability first
             print(f"🧪 SIMPLE MODEL TEST:")
             try:
-                simple_test_messages = [{
-                    'role': 'user', 
-                    'content': f'Sort this list in ascending order: {data[1][:50]}... (first 10 elements only for test)'
-                }]
-                simple_result = lm.query(simple_test_messages, max_tokens=200)
+                simple_prompt = f'Sort this list in ascending order: {data[1][:50]}... (first 10 elements only for test)'
+                simple_result = lm.query([simple_prompt])  # Simplified call
                 print(f"🧪 Simple test result: {simple_result}")
             except Exception as e:
                 print(f"🧪 Simple test failed: {e}")
@@ -786,12 +791,10 @@ def run(
             
             print(f"🚀 Starting Graph of Thoughts execution...")
             
-            # Debug: Analyze initial state and estimated prompt size
-            initial_state = executor.graph_reasoning_state
-            print(f"🔍 Initial state keys: {list(initial_state[0].state.keys()) if initial_state else 'None'}")
-            if initial_state:
-                original_data = initial_state[0].state.get('original', '')
-                print(f"🔍 Input data length: {len(original_data)} chars, ~{len(original_data.split())} tokens")
+            # Debug: Analyze input data size
+            original_data = data[1]  # The actual input list
+            print(f"🔍 Input data: {original_data}")
+            print(f"🔍 Input data length: {len(original_data)} chars, ~{len(original_data.split(','))} elements")
             
             # Estimate prompt complexity for GoT
             sample_prompt = "Complex GoT prompt with examples and instructions"
@@ -903,7 +906,7 @@ if __name__ == "__main__":
     """
     print("🧠 Starting Graph of Thoughts with vLLM Server")
     print("=" * 60)
-    print(f"📊 Testing {len(list(range(20)))} samples with Graph of Thoughts method")
+    print(f"📊 Testing {len(list(range(2)))} samples with Graph of Thoughts method")
     print(f"💰 Budget: ${100}")
     print(f"🤖 LLM: vLLM server (Llama-2-7B)")
     print("=" * 60)
