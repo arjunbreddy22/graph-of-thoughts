@@ -747,7 +747,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"📊 Testing Graph of Thoughts method on 32-element sorting")
     print(f"💰 Budget: ${100}")
-    print(f"🤖 LLM: vLLM server (Llama-2-7B)")
+    print(f"🤖 LLM: vLLM server (Qwen2-7B-Instruct)")
     print("=" * 60)
     
     budget = 100
