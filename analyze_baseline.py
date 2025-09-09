@@ -125,10 +125,27 @@ def print_baseline_report(analysis: Dict, results: List[Dict], experiment_name: 
     print("\n" + "=" * 60)
     print("vLLM + GoT BASELINE EVALUATION REPORT")
     print("=" * 60)
+    # Auto-detect task size from experiment name or data
+    task_size = "32"
+    if "064" in experiment_name:
+        task_size = "64"
+    elif results and len(results) > 0:
+        # Try to detect from actual data
+        original_data = results[0].get('original', '')
+        if original_data:
+            try:
+                # Count elements in the original list string
+                import re
+                numbers = re.findall(r'\d+', original_data)
+                if len(numbers) >= 60:
+                    task_size = "64"
+            except:
+                pass
+    
     print(f"Experiment: {experiment_name}")
     print(f"Model: Qwen2-7B-Instruct")
     print(f"Method: Graph of Thoughts (GoT)")
-    print(f"Task: 32-element list sorting")
+    print(f"Task: {task_size}-element list sorting")
     print()
     
     # Core Performance Metrics
