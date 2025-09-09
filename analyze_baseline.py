@@ -20,8 +20,14 @@ def extract_results(experiment_name: str) -> List[Dict]:
     """
     results = []
     
-    # Build path to experiment results
-    experiment_path = os.path.join("results", experiment_name, "got")
+    # Build path to experiment results - auto-detect method subdirectory
+    method_subdir = "got"  # default
+    if "_tot_" in experiment_name:
+        method_subdir = "tot"
+    elif "_got_" in experiment_name:
+        method_subdir = "got"
+    
+    experiment_path = os.path.join("results", experiment_name, method_subdir)
     
     if not os.path.exists(experiment_path):
         print(f"ERROR: Experiment path not found: {experiment_path}")
@@ -122,8 +128,15 @@ def print_baseline_report(analysis: Dict, results: List[Dict], experiment_name: 
     :param results: Raw results for detailed breakdown
     :param experiment_name: Name of the experiment being analyzed
     """
+    # Auto-detect method for report title
+    method_abbrev = "GoT"  # default
+    if "_tot_" in experiment_name:
+        method_abbrev = "ToT"
+    elif "_got_" in experiment_name:
+        method_abbrev = "GoT"
+    
     print("\n" + "=" * 60)
-    print("vLLM + GoT BASELINE EVALUATION REPORT")
+    print(f"vLLM + {method_abbrev} BASELINE EVALUATION REPORT")
     print("=" * 60)
     # Auto-detect task size from experiment name or data
     task_size = "32"
@@ -142,9 +155,16 @@ def print_baseline_report(analysis: Dict, results: List[Dict], experiment_name: 
             except:
                 pass
     
+    # Auto-detect method from experiment name
+    method_name = "Graph of Thoughts (GoT)"  # default
+    if "_tot_" in experiment_name:
+        method_name = "Tree of Thoughts (ToT)"
+    elif "_got_" in experiment_name:
+        method_name = "Graph of Thoughts (GoT)"
+    
     print(f"Experiment: {experiment_name}")
     print(f"Model: Qwen2-7B-Instruct")
-    print(f"Method: Graph of Thoughts (GoT)")
+    print(f"Method: {method_name}")
     print(f"Task: {task_size}-element list sorting")
     print()
     
