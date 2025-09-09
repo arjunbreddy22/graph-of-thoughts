@@ -773,62 +773,6 @@ def run(
             try:
                 executor.run()
                 print(f"✅ GoT execution completed successfully!")
-                
-                # Get final results and debug the structure
-                final_thoughts = executor.get_final_thoughts()
-                print(f"🔍 Debug: final_thoughts type = {type(final_thoughts)}")
-                print(f"🔍 Debug: final_thoughts length = {len(final_thoughts) if final_thoughts else 0}")
-                
-                if final_thoughts:
-                    print(f"🔍 Debug: first element type = {type(final_thoughts[0])}")
-                    
-                    # Try different ways to access the result
-                    try:
-                        final_thought = final_thoughts[0]
-                        
-                        # Check if it's a Thought object with state attribute
-                        if hasattr(final_thought, 'state'):
-                            result = final_thought.state.get('current', 'No result')
-                            score = getattr(final_thought, 'score', 'No score')
-                            print(f"🎯 Final sorted list: {result}")
-                            print(f"📈 Final score: {score}")
-                            
-                        # Check if it's a dictionary
-                        elif isinstance(final_thought, dict):
-                            result = final_thought.get('current', final_thought.get('state', {}).get('current', 'No result'))
-                            score = final_thought.get('score', 'No score')
-                            print(f"🎯 Final sorted list: {result}")
-                            print(f"📈 Final score: {score}")
-                            
-                        # If it's a list, maybe it contains multiple thoughts
-                        elif isinstance(final_thought, list):
-                            print(f"🔍 Debug: It's a list with {len(final_thought)} elements")
-                            if len(final_thought) > 0:
-                                inner_thought = final_thought[0]
-                                print(f"🔍 Debug: inner element type = {type(inner_thought)}")
-                                
-                                if hasattr(inner_thought, 'state'):
-                                    result = inner_thought.state.get('current', 'No result')
-                                    score = getattr(inner_thought, 'score', 'No score')
-                                    print(f"🎯 Final sorted list: {result}")
-                                    print(f"📈 Final score: {score}")
-                                elif isinstance(inner_thought, dict):
-                                    result = inner_thought.get('current', 'No result')
-                                    score = inner_thought.get('score', 'No score')
-                                    print(f"🎯 Final sorted list: {result}")
-                                    print(f"📈 Final score: {score}")
-                                else:
-                                    print(f"🔍 Debug: inner element content = {inner_thought}")
-                            
-                        else:
-                            # Just print whatever it is
-                            print(f"🎯 Final result (raw): {final_thought}")
-                            
-                    except Exception as e:
-                        print(f"❌ Error accessing results: {e}")
-                        print(f"🔍 Raw final_thoughts: {final_thoughts}")
-                else:
-                    print("⚠️ No final thoughts generated")
                     
             except Exception as e:
                 print(f"❌ Error during execution: {e}")
@@ -840,13 +784,7 @@ def run(
                 f"{data[0]}.json",
             )
             executor.output_graph(path)
-            print(f"💾 Results saved to: {path}")
-            
-            cost = lm.cost
-            budget -= cost
-            print(f"💸 Cost for this run: ${cost:.4f}")
-            print(f"💰 Budget remaining: ${budget:.2f}")
-            print("-" * 60)
+            budget -= lm.cost
 
     return orig_budget - budget
 
@@ -865,7 +803,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"📊 Testing {len(list(range(20)))} samples with Graph of Thoughts method")
     print(f"💰 Budget: ${100}")
-    print(f"🤖 LLM: vLLM server (Llama-2-7B)")
+    print(f"🤖 LLM: vLLM server (Qwen2-7B-Instruct)")
     print("=" * 60)
     
     budget = 100
